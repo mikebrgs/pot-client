@@ -1,0 +1,11 @@
+[package]
+name = "pot-client"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+atmospheric-sensor = {path = "../atmospheric-sensor"}
+light-sensor = {path = "../light-sensor"}
+moisture-sensor = {path = "../moisture-sensor"}
