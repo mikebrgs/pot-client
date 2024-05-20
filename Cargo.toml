@@ -3,11 +3,27 @@ name = "pot-client"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 atmospheric-sensor = {path = "../atmospheric-sensor"}
 chrono = "0.4.38"
 light-sensor = {path = "../light-sensor"}
-linux-embedded-hal = {version = "0.4.0", features = ["i2c"]}
+linux-embedded-hal = {version = "0.4.0", features = ["i2c"], optional = true}
 moisture-sensor = {path = "../moisture-sensor"}
+rand = { version = "0.8.5", optional = true }
+serde = {version = "1.0.202", features = ["derive"]}
+serde_json = "1.0.117"
+
+[features]
+default = ["off-target"]
+on-target = ["dep:linux-embedded-hal"]
+off-target = ["dep:rand"]
+
+[[bin]]
+name = "mock"
+path = "src/mock.rs"
+required-features = ["off-target"]
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+required-features = ["on-target"]
