@@ -2,14 +2,16 @@
 
 // Local imports
 
-use chrono::{DateTime, Utc};
 // Public imports
 use rand::prelude::*;
+use scopeguard::defer;
 use std::{thread, time::{self, SystemTime}};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use paho_mqtt as mqtt;
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct PotHealth {
     ts: String,
     temperature: f32,
@@ -23,6 +25,14 @@ struct PotHealth {
 fn main() {
     let sleep_duration = time::Duration::from_secs(1);
     let mut rng = thread_rng();
+    let mut cli = mqtt::Client::new(
+        "mqtt://localhost:1883".to_string()
+    ).unwrap();
+    cli.set_timeout(time::Duration::from_secs(5));
+    let _ = cli.connect(None).unwrap();
+    defer! {
+        cli.disconnect(None).unwrap();
+    }
 
     loop {
         // Timestamp creation
@@ -37,7 +47,7 @@ fn main() {
         let moisture_level: f32 = rng.gen::<f32>() * 10_000.0;
         let light_level: f32 = rng.gen::<f32>() * 20_000.0;
         
-        let message = PotHealth{
+        let pot_health = PotHealth{
             ts: timestamp_as_str.to_string(),
             temperature: temperature_celsius,
             humidity: humidity,
@@ -46,10 +56,18 @@ fn main() {
             light: light_level
         };
 
-        let serialized = serde_json::to_string(&message);
+        let serialized = serde_json::to_string(&pot_health).unwrap();
+        let message = mqtt::Message::new(
+            "hello",
+            serialized.clone(),
+            0
+        );
 
-        println!("{}", serialized.unwrap());
+        let _ = cli.publish(message).unwrap();
+
+        println!("{}", serialized);
 
         thread::sleep(sleep_duration)
     }
+
 }
