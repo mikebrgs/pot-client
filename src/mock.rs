@@ -13,7 +13,8 @@ use paho_mqtt as mqtt;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct PotHealth {
-    ts: String,
+    ts: DateTime<Utc>,
+    device_id: String,
     temperature: f32,
     humidity: f32,
     pressure: f32,
@@ -38,7 +39,6 @@ fn main() {
         // Timestamp creation
         let timestamp = SystemTime::now();
         let timestamp: DateTime<Utc> = timestamp.into();
-        let timestamp_as_str = timestamp.format("%Y-%m-%dT%T");
 
         // Generate sensor values
         let temperature_celsius: f32 = rng.gen::<f32>() * 30.0;
@@ -48,7 +48,8 @@ fn main() {
         let light_level: f32 = rng.gen::<f32>() * 20_000.0;
         
         let pot_health = PotHealth{
-            ts: timestamp_as_str.to_string(),
+            ts: timestamp,
+            device_id: "mock".to_string(),
             temperature: temperature_celsius,
             humidity: humidity,
             pressure: pressure_bar,
@@ -58,7 +59,7 @@ fn main() {
 
         let serialized = serde_json::to_string(&pot_health).unwrap();
         let message = mqtt::Message::new(
-            "hello",
+            "pot/health",
             serialized.clone(),
             0
         );

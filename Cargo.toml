@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 atmospheric-sensor = {path = "../atmospheric-sensor"}
-chrono = "0.4.38"
+chrono = {version = "0.4.38", features = ["serde"]}
 light-sensor = {path = "../light-sensor"}
 linux-embedded-hal = {version = "0.4.0", features = ["i2c"], optional = true}
 moisture-sensor = {path = "../moisture-sensor"}
