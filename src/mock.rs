@@ -55,7 +55,7 @@ fn main() {
         
         let pot_health = PotHealth{
             ts: timestamp,
-            device_id: "mock".to_string(),
+            device_id: config.device_id.clone(),
             temperature: temperature_celsius,
             humidity: humidity,
             pressure: pressure_bar,
@@ -66,7 +66,7 @@ fn main() {
         let serialized = serde_json::to_string(&pot_health).unwrap();
         mqtt_client.publish("pot/health", &serialized).unwrap();
 
-        thread::sleep(time::Duration::from_secs(1))
+        thread::sleep(time::Duration::from_secs_f32(config.sensors.period))
     }
 
 }
