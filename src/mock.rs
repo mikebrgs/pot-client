@@ -1,43 +1,49 @@
 // Local modules
+mod models;
+mod config;
+mod message_broker;
 
 // Local imports
+use models::pot::PotHealth;
+use message_broker::MessageBroker;
+use config::Config;
 
 // Public imports
 use rand::prelude::*;
 use scopeguard::defer;
-use std::{thread, time::{self, SystemTime}};
+use std::{fs::File, io::BufReader, thread, time};
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use paho_mqtt as mqtt;
-
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PotHealth {
-    ts: DateTime<Utc>,
-    device_id: String,
-    temperature: f32,
-    humidity: f32,
-    pressure: f32,
-    moisture: f32,
-    light: f32
-}
 
 
 fn main() {
-    let sleep_duration = time::Duration::from_secs(1);
+    // Set logger
+    env_logger::init();
+
+    // Start random number generation
     let mut rng = thread_rng();
-    let mut cli = mqtt::Client::new(
-        "mqtt://localhost:1883".to_string()
+
+    // Load config
+    let file = File::open("configs/pot-client.yaml")
+        .expect("Failed to open config file");
+    let reader = BufReader::new(file);
+
+    // Deserialize the configuration from the file
+    let config: Config = serde_yaml::from_reader(reader)
+        .expect("Failed to parse config file");
+
+    // Create and connect to message broker - MQTT
+    let mut mqtt_client = message_broker::mqtt::MQTT::new(
+        format!("mqtt://{}:{}", config.mqtt.host, config.mqtt.port),
+        format!("{}-{}", "pot-client-mock", rng.gen_range(0..1000))
     ).unwrap();
-    cli.set_timeout(time::Duration::from_secs(5));
-    let _ = cli.connect(None).unwrap();
+    mqtt_client.connect().unwrap();
     defer! {
-        cli.disconnect(None).unwrap();
+        mqtt_client.disconnect().unwrap();
     }
 
     loop {
         // Timestamp creation
-        let timestamp = SystemTime::now();
+        let timestamp = time::SystemTime::now();
         let timestamp: DateTime<Utc> = timestamp.into();
 
         // Generate sensor values
@@ -58,17 +64,9 @@ fn main() {
         };
 
         let serialized = serde_json::to_string(&pot_health).unwrap();
-        let message = mqtt::Message::new(
-            "pot/health",
-            serialized.clone(),
-            0
-        );
+        mqtt_client.publish("pot/health", &serialized).unwrap();
 
-        let _ = cli.publish(message).unwrap();
-
-        println!("{}", serialized);
-
-        thread::sleep(sleep_duration)
+        thread::sleep(time::Duration::from_secs(1))
     }
 
 }
